@@ -150,8 +150,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   #calendar-grid{grid-template-columns:1fr!important;gap:8px!important;width:100%!important}
   .cal-header-row{display:none!important}
 
-  /* Stats: 4 col → 2x2 compact */
+  /* Stats: 5 col → 2x2 + 1 compact on mobile */
   .stats-grid{grid-template-columns:repeat(2,1fr)!important;gap:8px!important}
+  .stats-grid > div:last-child{grid-column:1/-1}
   .stats-grid > div{padding:8px 10px!important}
   .stats-grid .text-xl{font-size:1.1rem!important}
 
@@ -301,7 +302,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
     <!-- Stats row -->
-    <div class="max-w-7xl mx-auto px-4 pb-3 stats-grid grid grid-cols-4 gap-3 stats-area" style="box-sizing:border-box;width:100%">
+    <div class="max-w-7xl mx-auto px-4 pb-3 stats-grid grid grid-cols-4 gap-3 stats-area" style="box-sizing:border-box;width:100%;grid-template-columns:repeat(5,1fr)">
       <div class="bg-gray-50 rounded-xl px-4 py-2 flex items-center gap-3">
         <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
           <svg width="16" height="16" fill="none" stroke="#2563eb" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
@@ -325,6 +326,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <svg width="16" height="16" fill="none" stroke="#7c3aed" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
         </div>
         <div><div class="text-xs text-gray-500">Progresso</div><div class="text-xl font-bold text-purple-600" id="stat-progress">0%</div></div>
+      </div>
+      <!-- Google Calendar button -->
+      <div id="gcal-stat-card" class="bg-gray-50 rounded-xl px-4 py-2 flex items-center gap-3" style="cursor:pointer;transition:all .15s" onclick="connectGoogleCalendar()">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background:#e8f0fe">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        </div>
+        <div><div class="text-xs text-gray-500" id="gcal-stat-label">Google</div><div class="text-sm font-bold text-gray-700" id="gcal-stat-status">Calendar</div></div>
       </div>
     </div>
   </div>
@@ -673,7 +681,7 @@ function renderLegend(){
 }
 
 // ════ CONFIGURAÇÃO (edite aqui) ════
-const SHEETS_URL='https://script.google.com/macros/s/AKfycbyEPQp-OKXWVZ7u8rOW4Q8o0nF474x38QFCEVwtmn06EvSwnyka3N-B7gM1hYyRhi5E/exec'; // Cole a URL do seu Google Apps Script
+const SHEETS_URL=''; // Cole a URL do seu Google Apps Script
 // ════════════════════════════════════
 
 let gcalConnected=false;
@@ -745,18 +753,34 @@ function connectGoogleCalendar(){
 }
 
 function updateCalendarUI(){
+  // Welcome screen button
   const box=document.getElementById('gcal-box');
   const btn=document.getElementById('btn-gcal');
   const status=document.getElementById('gcal-status');
-  box.style.borderColor='#22c55e';
-  box.style.background='#f0fdf4';
-  btn.innerHTML=`<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> ✓ Google Calendar Conectado`;
-  btn.style.background='#f0fdf4';
-  btn.style.borderColor='#22c55e';
-  btn.style.color='#16a34a';
-  btn.style.cursor='default';
-  status.textContent='Os eventos do calendário serão criados automaticamente';
-  status.style.color='#16a34a';
+  if(box){
+    box.style.borderColor='#22c55e';
+    box.style.background='#f0fdf4';
+    btn.innerHTML=`<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> ✓ Google Calendar Conectado`;
+    btn.style.background='#f0fdf4';
+    btn.style.borderColor='#22c55e';
+    btn.style.color='#16a34a';
+    btn.style.cursor='default';
+    status.textContent='Os eventos do calendário serão criados automaticamente';
+    status.style.color='#16a34a';
+  }
+  // Stats bar card
+  const card=document.getElementById('gcal-stat-card');
+  const label=document.getElementById('gcal-stat-label');
+  const statStatus=document.getElementById('gcal-stat-status');
+  if(card){
+    card.style.background='#f0fdf4';
+    card.style.cursor='default';
+    card.onclick=null;
+    label.textContent='Google';
+    statStatus.textContent='Conectado ✓';
+    statStatus.style.color='#16a34a';
+    card.querySelector('.w-8').style.background='#dcfce7';
+  }
 }
 
 // ── Criar eventos no Google Calendar ──
