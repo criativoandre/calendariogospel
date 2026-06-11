@@ -244,9 +244,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div id="gcal-box" style="border:2px dashed #e5e7eb;border-radius:14px;padding:14px;text-align:center;margin-top:4px;transition:all .2s">
           <button onclick="connectGoogleCalendar()" id="btn-gcal" style="background:white;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#374151;transition:all .15s">
             <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            Conectar Google Calendar
+            Exportar para Google Agenda (.ics)
           </button>
-          <p id="gcal-status" style="font-size:11px;color:#9ca3af;margin:8px 0 0">Opcional — sincroniza os eventos no seu calendário</p>
+          <p id="gcal-status" style="font-size:11px;color:#9ca3af;margin:8px 0 0">Opcional — gera um arquivo para importar no Google Agenda</p>
         </div>
 
       </div>
@@ -332,7 +332,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background:#e8f0fe">
           <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
         </div>
-        <div><div class="text-xs text-gray-500" id="gcal-stat-label">Google</div><div class="text-sm font-bold text-gray-700" id="gcal-stat-status">Calendar</div></div>
+        <div><div class="text-xs text-gray-500" id="gcal-stat-label">Agenda</div><div class="text-sm font-bold text-gray-700" id="gcal-stat-status">Exportar .ics</div></div>
       </div>
     </div>
   </div>
@@ -685,7 +685,6 @@ const SHEETS_URL=''; // Cole a URL do seu Google Apps Script
 // ════════════════════════════════════
 
 let gcalConnected=false;
-let gcalToken=null;
 
 // ── Máscara de telefone ──
 function maskPhone(el){
@@ -724,88 +723,105 @@ function validateWelcome(){
 
 // ── Google Calendar OAuth ──
 function connectGoogleCalendar(){
-  // Simula fluxo OAuth (em produção, usar Google Identity Services)
-  const CLIENT_ID=''; // Cole seu Google OAuth Client ID
-  if(!CLIENT_ID){
-    // Modo demo sem Client ID configurado
-    gcalConnected=true;
-    updateCalendarUI();
-    return;
-  }
-  const scope='https://www.googleapis.com/auth/calendar.events';
-  const redirect=encodeURIComponent(location.href.split('?')[0]);
-  const url=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${redirect}&response_type=token&scope=${encodeURIComponent(scope)}`;
-  const popup=window.open(url,'gcal-auth','width=500,height=600');
-  const check=setInterval(()=>{
-    try{
-      const params=new URLSearchParams(popup.location.hash.substring(1));
-      const token=params.get('access_token');
-      if(token){
-        gcalToken=token;
-        gcalConnected=true;
-        popup.close();
-        clearInterval(check);
-        updateCalendarUI();
-      }
-    }catch(_){}
-    if(popup.closed)clearInterval(check);
-  },500);
+  exportToICS(currentMonth);
 }
 
-function updateCalendarUI(){
-  // Welcome screen button
-  const box=document.getElementById('gcal-box');
-  const btn=document.getElementById('btn-gcal');
-  const status=document.getElementById('gcal-status');
-  if(box){
-    box.style.borderColor='#22c55e';
-    box.style.background='#f0fdf4';
-    btn.innerHTML=`<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> ✓ Google Calendar Conectado`;
-    btn.style.background='#f0fdf4';
-    btn.style.borderColor='#22c55e';
-    btn.style.color='#16a34a';
-    btn.style.cursor='default';
-    status.textContent='Os eventos do calendário serão criados automaticamente';
-    status.style.color='#16a34a';
+function exportToICS(monthIdx){
+  const m=PREVIEW[monthIdx];
+  const year=2026;
+  const monthNum=monthIdx+1;
+
+  const pad=(n)=>String(n).padStart(2,'0');
+  const now=new Date();
+  const stamp=`${now.getUTCFullYear()}${pad(now.getUTCMonth()+1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`;
+
+  // Color map by type
+  const colorMap={Banner:1,Vídeo:3,Agenda:7,Frase:4,Versículo:9,Carrossel:6,Reels:11,TBT:5,Interação:2,Live:10};
+
+  let ics=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Calendario Gospel 2026//PT\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:Calendário Gospel ${year} - ${m.m}\r\nX-WR-TIMEZONE:America/Sao_Paulo\r\n`;
+
+  for(const e of m.d){
+    const det=DETAILS[`${monthIdx}_${e.n}`]||{det:'',dicas:''};
+    const dateStr=`${year}${pad(monthNum)}${pad(e.n)}`;
+    const nextDay=new Date(year,monthNum-1,e.n+1);
+    const nextDateStr=`${nextDay.getFullYear()}${pad(nextDay.getMonth()+1)}${pad(nextDay.getDate())}`;
+
+    // Escape ICS special chars
+    const esc=(s)=>(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n').replace(/\r/g,'');
+    const foldLine=(s)=>{ // ICS line folding at 75 chars
+      let r='';
+      while(s.length>75){r+=s.substring(0,75)+'\r\n ';s=s.substring(75);}
+      return r+s+'\r\n';
+    };
+
+    const uid=`gospel-${year}${pad(monthNum)}${pad(e.n)}@calendario-gospel`;
+    const title=`${e.t}: ${e.tt}`;
+    const desc=`${e.s}\\n\\n${esc(det.det)}\\n\\n💡 Dicas:\\n${esc(det.dicas)}`;
+
+    ics+=`BEGIN:VEVENT\r\n`;
+    ics+=foldLine(`UID:${uid}`);
+    ics+=`DTSTAMP:${stamp}\r\n`;
+    ics+=`DTSTART;VALUE=DATE:${dateStr}\r\n`;
+    ics+=`DTEND;VALUE=DATE:${nextDateStr}\r\n`;
+    ics+=foldLine(`SUMMARY:${esc(title)}`);
+    ics+=foldLine(`DESCRIPTION:${desc}`);
+    ics+=`CATEGORIES:${esc(e.t)}\r\n`;
+    ics+=`STATUS:CONFIRMED\r\n`;
+    ics+=`END:VEVENT\r\n`;
   }
-  // Stats bar card
+
+  ics+=`END:VCALENDAR\r\n`;
+
+  // Download .ics file
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`Calendario-Gospel-${year}-${m.m}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  // Show success feedback
+  showICSFeedback();
+}
+
+function showICSFeedback(){
   const card=document.getElementById('gcal-stat-card');
   const label=document.getElementById('gcal-stat-label');
   const statStatus=document.getElementById('gcal-stat-status');
   if(card){
     card.style.background='#f0fdf4';
-    card.style.cursor='default';
-    card.onclick=null;
-    label.textContent='Google';
-    statStatus.textContent='Conectado ✓';
+    label.textContent='Arquivo';
+    statStatus.textContent='Baixado ✓';
     statStatus.style.color='#16a34a';
     card.querySelector('.w-8').style.background='#dcfce7';
+    setTimeout(()=>{
+      label.textContent='Google';
+      statStatus.textContent='Calendar';
+      statStatus.style.color='';
+      card.style.background='';
+      card.querySelector('.w-8').style.background='#e8f0fe';
+    },3000);
   }
+
+  // Show instructions toast
+  const toast=document.createElement('div');
+  toast.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1f2937;color:white;padding:12px 20px;border-radius:12px;font-size:13px;z-index:999;max-width:320px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.25)';
+  toast.innerHTML='📅 Arquivo .ics baixado!<br><span style="font-size:11px;opacity:.8">Abra o arquivo para importar no Google Agenda</span>';
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(),4000);
 }
 
-// ── Criar eventos no Google Calendar ──
-async function createCalendarEvents(monthIdx){
-  if(!gcalConnected||!gcalToken)return;
-  const m=PREVIEW[monthIdx];
-  const year=2026;
-  const monthNum=monthIdx+1;
-  for(const e of m.d){
-    const dateStr=`${year}-${String(monthNum).padStart(2,'0')}-${String(e.n).padStart(2,'0')}`;
-    const det=DETAILS[`${monthIdx}_${e.n}`]||{};
-    const body={
-      summary:`${e.t}: ${e.tt}`,
-      description:`${e.s}\n\n${det.det||''}\n\n💡 ${det.dicas||''}`.trim(),
-      start:{date:dateStr},
-      end:{date:dateStr},
-      colorId:'1'
-    };
-    try{
-      await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+gcalToken,'Content-Type':'application/json'},
-        body:JSON.stringify(body)
-      });
-    }catch(_){}
+function updateCalendarUI(){
+  // Welcome screen button (kept for compatibility)
+  const box=document.getElementById('gcal-box');
+  if(box){
+    box.style.borderColor='#22c55e';
+    box.style.background='#f0fdf4';
+    const status=document.getElementById('gcal-status');
+    if(status){status.textContent='Clique em "Exportar para Google Agenda" após iniciar';status.style.color='#16a34a';}
   }
 }
 
